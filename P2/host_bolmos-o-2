@@ -1,0 +1,6 @@
+# Setting static address for host 2.
+
+auto eth1
+iface eth1 inet static
+    address 30.1.1.2
+    netmask 255.255.255.0
