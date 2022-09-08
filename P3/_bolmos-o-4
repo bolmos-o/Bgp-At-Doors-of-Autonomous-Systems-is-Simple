@@ -1,0 +1,52 @@
+# /etc/network/interfaces file.
+
+# Setting VXLAN with id 10. 
+
+auto vxlan10
+iface vxlan10 inet manual
+	pre-up /sbin/ip link add vxlan10 type vxlan id 10 dstport 4789
+	up /sbin/ip link set dev vxlan10 up
+
+# Setting bridge. It will assemble the interface eth0, connected to the host, to the VXLAN.
+
+auto br0
+iface br0 inet manual
+	pre-up /sbin/ip link add br0 type bridge
+	up /sbin/ip link set dev br0 up
+	post-up /sbin/ip link set dev eth0 master br0
+	post-up /sbin/ip link set dev vxlan10 master br0
+
+# /etc/frr/frr.conf
+
+frr version 8.1_git
+frr defaults traditional
+hostname _bolmos-o-4
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+! Sets interface address and enables OSPF on it.
+!
+interface eth2
+ ip address 10.1.1.10/30
+ ip ospf area 0
+!
+! Sets loopback interface address and enables OSPF on it.
+!
+interface lo
+ ip address 1.1.1.4/32
+ ip ospf area 0
+!                                 
+! Sets the leaf in the same AS as the spine;             
+! Sets the interface "lo" as the source address for the BGP session.
+! Enables BGP to carry the VXLAN information on l2vpn evpn.
+! Tells to advertise the VNI.                            
+!       
+router bgp 1
+ neighbor 1.1.1.1 remote-as internal
+ neighbor 1.1.1.1 update-source lo
+ address-family l2vpn evpn
+  neighbor 1.1.1.1 activate
+  advertise-all-vni
+ exit-address-family
+!
+router ospf

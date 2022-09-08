@@ -1,0 +1,44 @@
+frr version 8.1_git
+frr defaults traditional
+hostname _bolmos-o-1
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+! Sets all interfaces addresses and enable OSPF.
+!
+interface eth0
+ ip address 10.1.1.1/30
+ ip ospf area 0
+!
+interface eth1
+ ip address 10.1.1.5/30
+ ip ospf area 0
+!
+interface eth2
+ ip address 10.1.1.9/30
+ ip ospf area 0
+!
+interface lo
+ ip address 1.1.1.1/32
+ ip ospf area 0
+!
+! Create a peer-group "fabric" for configuration.
+! Sets fabric as internal BGP.
+! Sets the loopback interface as the source for the BGP session.
+! Sets the interfaces from an address range to be part of the peer-group.
+! Enable BGP to carry l2vpn evpn information.
+! Enable the route-reflector on the peer-group to avoid loops.
+!
+router bgp 1
+ neighbor fabric peer-group
+ neighbor fabric remote-as internal
+ neighbor fabric update-source lo
+ bgp listen range 1.1.1.0/29 peer-group fabric
+ address-family l2vpn evpn
+  neighbor fabric activate
+  neighbor fabric route-reflector-client
+ exit address-family
+!
+! Enable OSPF.
+!
+router ospf
